@@ -13,13 +13,13 @@ import hashlib
 import xml.etree.ElementTree as ET
 
 class VulnerabilityTester:
-    """Classe dédiée aux tests de vulnérabilités spécifiques"""
+    """Class dedicated to specific vulnerability testing"""
     
     def __init__(self, timeout=10):
         self.timeout = timeout
         
     def test_xss(self, url, params):
-        """Test basique de XSS réfléchi"""
+        """Basic reflected XSS test"""
         payloads = [
             '<script>alert(1)</script>',
             '"><script>alert(1)</script>',
@@ -63,18 +63,18 @@ class VulnerabilityTester:
                     r = requests.get(url, params=params, timeout=self.timeout)
                     if payload in r.text:
                         vulnerabilities.append({
-                            'type': 'XSS potentiel',
+                            'type': 'Potential XSS',
                             'param': param,
                             'payload': payload,
                             'url': url
                         })
                 except Exception as e:
-                    logging.error(f"Erreur lors du test XSS: {str(e)}")
+                    logging.error(f"Error during XSS test: {str(e)}")
                     
         return vulnerabilities
 
     def test_sqli(self, url, params):
-        """Test basique d'injection SQL"""
+        """Basic SQL injection test"""
         payloads = [
             "' OR '1'='1",
             "1' OR '1'='1",
@@ -126,13 +126,13 @@ class VulnerabilityTester:
                     
                     if abs(len(r.text) - original_length) > 50 or r.status_code != original_response.status_code:
                         vulnerabilities.append({
-                            'type': 'SQLi potentielle',
+                            'type': 'Potential SQLi',
                             'param': param,
                             'payload': payload,
                             'url': url
                         })
                 except Exception as e:
-                    logging.error(f"Erreur lors du test SQLi: {str(e)}")
+                    logging.error(f"Error during SQLi test: {str(e)}")
                     
         return vulnerabilities
 
@@ -159,52 +159,52 @@ class SecurityScanner:
         logging.getLogger().addHandler(console_handler)
 
     def check_ssl(self):
-        """Vérifie la configuration SSL/TLS"""
+        """Check SSL/TLS configuration"""
         try:
             hostname = self.target.split("://")[-1].split("/")[0]
             context = ssl.create_default_context()
             with socket.create_connection((hostname, 443)) as sock:
                 with context.wrap_socket(sock, server_hostname=hostname) as ssock:
                     cert = ssock.getpeercert()
-                    logging.info(f"Certificat SSL valide pour {hostname}")
+                    logging.info(f"Valid SSL certificate for {hostname}")
                     return True, cert
         except Exception as e:
-            logging.error(f"Erreur SSL: {str(e)}")
+            logging.error(f"SSL Error: {str(e)}")
             return False, str(e)
 
     def check_headers(self):
-        """Analyse les en-têtes de sécurité"""
+        """Analyze security headers"""
         try:
             r = requests.head(self.target, timeout=self.timeout)
             security_headers = {
-                'Strict-Transport-Security': 'HSTS non configuré',
-                'X-Frame-Options': 'Protection contre le clickjacking manquante',
-                'X-Content-Type-Options': 'Protection MIME sniffing manquante',
-                'Content-Security-Policy': 'CSP non configurée',
-                'X-XSS-Protection': 'Protection contre les attaques XSS manquante',
-                'Referrer-Policy': 'Politique de référent non configurée',
-                'Permissions-Policy': 'Politique de permissions non configurée',
-                'Expect-CT': 'Expect-CT non configuré',
-                'Feature-Policy': 'Politique des fonctionnalités non configurée',
-                'Cache-Control': 'Contrôle du cache non configuré',
-                'Pragma': 'Directive Pragma non configurée',
-                'Expires': 'Directive Expires non configurée',
-                'Access-Control-Allow-Origin': 'CORS non configuré'
+                'Strict-Transport-Security': 'HSTS not configured',
+                'X-Frame-Options': 'Missing clickjacking protection',
+                'X-Content-Type-Options': 'Missing MIME sniffing protection',
+                'Content-Security-Policy': 'CSP not configured',
+                'X-XSS-Protection': 'Missing XSS protection',
+                'Referrer-Policy': 'Referrer policy not configured',
+                'Permissions-Policy': 'Permissions policy not configured',
+                'Expect-CT': 'Expect-CT not configured',
+                'Feature-Policy': 'Feature policy not configured',
+                'Cache-Control': 'Cache control not configured',
+                'Pragma': 'Pragma directive not configured',
+                'Expires': 'Expires directive not configured',
+                'Access-Control-Allow-Origin': 'CORS not configured'
             }
             
             missing_headers = []
             for header, message in security_headers.items():
                 if header not in r.headers:
                     missing_headers.append(message)
-                    logging.warning(f"En-tête manquant: {header}")
+                    logging.warning(f"Missing header: {header}")
             
             return missing_headers
         except Exception as e:
-            logging.error(f"Erreur lors de la vérification des en-têtes: {str(e)}")
+            logging.error(f"Error checking headers: {str(e)}")
             return [str(e)]
 
     def check_open_ports(self, host):
-        """Scanner les ports courants"""
+        """Scan common ports"""
         common_ports = [
             21,    # FTP
             22,    # SSH
@@ -248,16 +248,16 @@ class SecurityScanner:
                 result = sock.connect_ex((host, port))
                 if result == 0:
                     open_ports.append(port)
-                    logging.info(f"Port ouvert trouvé: {port}")
+                    logging.info(f"Found open port: {port}")
             except Exception as e:
-                logging.error(f"Erreur lors du scan du port {port}: {str(e)}")
+                logging.error(f"Error scanning port {port}: {str(e)}")
             finally:
                 sock.close()
             
         return open_ports
 
     def check_common_vulnerabilities(self):
-        """Vérifie les vulnérabilités web courantes"""
+        """Check common web vulnerabilities"""
         common_paths = [
             '/admin', '/phpinfo.php', '/test.php', '/.git',
             '/.env', '/wp-config.php', '/config.php',
@@ -283,15 +283,15 @@ class SecurityScanner:
                 r = requests.get(url, timeout=self.timeout, allow_redirects=False)
                 if r.status_code != 404:
                     found_paths.append((path, r.status_code))
-                    logging.warning(f"Chemin sensible trouvé: {path} - Status: {r.status_code}")
+                    logging.warning(f"Found sensitive path: {path} - Status: {r.status_code}")
             except Exception as e:
-                logging.error(f"Erreur lors du test du chemin {path}: {str(e)}")
+                logging.error(f"Error testing path {path}: {str(e)}")
                 continue
                 
         return found_paths
 
     def crawl_site(self, url, depth=0):
-        """Crawler pour découvrir les URLs du site"""
+        """Crawler to discover site URLs"""
         if depth >= self.depth or url in self.visited_urls:
             return set()
             
@@ -322,12 +322,12 @@ class SecurityScanner:
                     self.crawl_site(new_url, depth + 1)
                     
         except Exception as e:
-            logging.error(f"Erreur lors du crawl de {url}: {str(e)}")
+            logging.error(f"Error crawling {url}: {str(e)}")
             
         return new_urls
 
     def test_url_vulnerabilities(self, url):
-        """Test des vulnérabilités sur une URL spécifique"""
+        """Test vulnerabilities on a specific URL"""
         parsed_url = urlparse(url)
         params = parse_qs(parsed_url.query)
         
@@ -341,11 +341,11 @@ class SecurityScanner:
                 self.vulns.extend(sqli_vulns)
 
     def generate_report(self, results):
-        """Génère un rapport détaillé en format HTML"""
+        """Generate detailed HTML report"""
         report = f"""
         <html>
         <head>
-            <title>Rapport de Sécurité - {self.target}</title>
+            <title>Security Report - {self.target}</title>
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 20px; }}
                 .section {{ margin: 20px 0; padding: 10px; border: 1px solid #ddd; }}
@@ -354,42 +354,42 @@ class SecurityScanner:
             </style>
         </head>
         <body>
-            <h1>Rapport de Sécurité</h1>
+            <h1>Security Report</h1>
             <div class="section">
-                <h2>Informations générales</h2>
-                <p>Cible: {results['target']}</p>
-                <p>Date du scan: {results['timestamp']}</p>
+                <h2>General Information</h2>
+                <p>Target: {results['target']}</p>
+                <p>Scan Date: {results['timestamp']}</p>
             </div>
             
             <div class="section">
-                <h2>Configuration SSL</h2>
-                <p>Status: {'Valide' if results['ssl_check'][0] else 'Invalid'}</p>
-                <p>Détails: {results['ssl_check'][1]}</p>
+                <h2>SSL Configuration</h2>
+                <p>Status: {'Valid' if results['ssl_check'][0] else 'Invalid'}</p>
+                <p>Details: {results['ssl_check'][1]}</p>
             </div>
             
             <div class="section">
-                <h2>En-têtes de sécurité manquants</h2>
+                <h2>Missing Security Headers</h2>
                 <ul>
                     {''.join(f'<li>{header}</li>' for header in results['missing_headers'])}
                 </ul>
             </div>
             
             <div class="section">
-                <h2>Ports ouverts</h2>
+                <h2>Open Ports</h2>
                 <p>{', '.join(map(str, results['open_ports']))}</p>
             </div>
             
             <div class="section">
-                <h2>URLs vulnérables</h2>
+                <h2>Vulnerable URLs</h2>
                 <ul>
                     {''.join(f'<li>{path[0]} (Status: {path[1]})</li>' for path in results['vulnerable_paths'])}
                 </ul>
             </div>
             
             <div class="section">
-                <h2>Vulnérabilités détectées</h2>
+                <h2>Detected Vulnerabilities</h2>
                 <ul>
-                    {''.join(f'<li class="vulnerability">{vuln["type"]} - {vuln["url"]} (Paramètre: {vuln["param"]})</li>' for vuln in self.vulns)}
+                    {''.join(f'<li class="vulnerability">{vuln["type"]} - {vuln["url"]} (Parameter: {vuln["param"]})</li>' for vuln in self.vulns)}
                 </ul>
             </div>
         </body>
@@ -402,10 +402,10 @@ class SecurityScanner:
         return report_filename
 
     def run_scan(self):
-        """Exécute un scan complet"""
-        logging.info(f"Début du scan pour {self.target}")
+        """Run complete scan"""
+        logging.info(f"Starting scan for {self.target}")
         
-        # Scan initial
+        # Initial scan
         results = {
             'target': self.target,
             'timestamp': datetime.now().isoformat(),
@@ -415,23 +415,23 @@ class SecurityScanner:
             'vulnerable_paths': self.check_common_vulnerabilities()
         }
         
-        # Crawl et test des vulnérabilités
+        # Crawl and test vulnerabilities
         discovered_urls = self.crawl_site(self.target)
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             executor.map(self.test_url_vulnerabilities, discovered_urls)
         
-        # Génération du rapport
+        # Generate report
         report_filename = self.generate_report(results)
         
-        logging.info(f"Scan terminé. Rapport généré : {report_filename}")
+        logging.info(f"Scan completed. Report generated: {report_filename}")
         return results
 
 def main():
-    parser = argparse.ArgumentParser(description='Scanner de sécurité web éthique avancé')
-    parser.add_argument('target', help='URL ou IP cible')
-    parser.add_argument('--threads', type=int, default=5, help='Nombre de threads')
-    parser.add_argument('--timeout', type=int, default=10, help='Timeout en secondes')
-    parser.add_argument('--depth', type=int, default=2, help='Profondeur maximale du crawl')
+    parser = argparse.ArgumentParser(description='Advanced Ethical Web Security Scanner')
+    parser.add_argument('target', help='Target URL or IP')
+    parser.add_argument('--threads', type=int, default=5, help='Number of threads')
+    parser.add_argument('--timeout', type=int, default=10, help='Timeout in seconds')
+    parser.add_argument('--depth', type=int, default=2, help='Maximum crawl depth')
     
     args = parser.parse_args()
     
@@ -440,8 +440,8 @@ def main():
     scanner = SecurityScanner(args.target, args.threads, args.timeout, args.depth)
     results = scanner.run_scan()
     
-    print("\n=== Résumé du Scan de Sécurité ===")
-    print(f"Un rapport détaillé a été généré dans security_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html")
+    print("\n=== Security Scan Summary ===")
+    print(f"A detailed report has been generated in security_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html")
 
 if __name__ == "__main__":
     main()
